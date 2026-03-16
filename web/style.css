@@ -1,0 +1,183 @@
+:root {
+    --bg: #0f1115;
+    --card: #1a1d23;
+    --text: #e6e6e6;
+    --border: #2c313a;
+    --accent: #3b82f6;
+}
+
+body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding-top: 90px;
+}
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    background: #0f1115;
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.header-buttons {
+    display: flex;
+    align-items: right;
+    gap: 12px;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 0 20px;
+}
+
+.card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 22px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.total-card {
+    display: flex;
+    justify-content: space-between;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+    padding: 12px 4px;
+}
+
+td {
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+.balance {
+    text-align: right;
+    font-family: ui-monospace, monospace;
+}
+
+.btc-value{
+  font-size:24px;
+  font-weight:700;
+}
+
+.usd-value{
+  font-size:14px;
+  opacity:.7;
+  margin-top:4px;
+}
+
+
+.logo-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    user-select: none;
+}
+
+
+tbody tr {
+    cursor: pointer;
+    transition: background .15s ease;
+}
+
+tbody tr:hover {
+    background: #232833;
+}
+
+.chevron {
+    text-align: right;
+    color: #6b7280;
+    font-size: 18px;
+    width: 30px;
+}
+
+tbody tr:hover .chevron {
+    color: #9ca3af;
+}
+
+.btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    opacity: .9;
+}
+
+canvas {
+    margin-top: 20px;
+    max-height: 320px;
+}
+
+footer {
+    opacity: .6;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 30px;
+    user-select: none;
+}
+
+.loading {
+    text-align: center;
+    color: #6b7280;
+    padding: 20px;
+}
+
+/* SweetAlert popup custom */
+
+.wallet-popup {
+    width: 650px !important;
+}
+
+.swal2-input,
+.swal2-textarea {
+    font-family: monospace;
+    font-size: 14px;
+    width: 97%;
+    margin: auto;
+    height: 50px;
+    margin-top: 15px;
+    resize: none;
+}
+
+.wallet-type {
+    font-size: 13px;
+    opacity: .7;
+    margin-top: 6px;
+}

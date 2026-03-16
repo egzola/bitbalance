@@ -54,7 +54,7 @@ Your wallet data never leaves your infrastructure.
 
 ## Screenshot
 
-![bitBalance Dashboard](screenshot.png)
+![bitBalance Dashboard]([screenshot.png](https://github.com/egzola/bitBalance/blob/main/web/screenshot.png?raw=true))
 
 ---
 

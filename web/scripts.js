@@ -508,9 +508,9 @@ const centerText = {
     }
 }
 
-function copyDonate() {
 
-  const text = "sendmore@walletofsatoshi.com"
+
+function copyText(text) {
 
   if (navigator.clipboard && navigator.clipboard.writeText) {
 
@@ -518,17 +518,13 @@ function copyDonate() {
 
   } else {
 
-    const textarea = document.createElement("textarea")
-    textarea.value = text
-    textarea.style.position = "fixed"
-    textarea.style.opacity = 0
-
-    document.body.appendChild(textarea)
-    textarea.select()
-
+    const t = document.createElement("textarea")
+    t.value = text
+    document.body.appendChild(t)
+    t.select()
     document.execCommand("copy")
+    document.body.removeChild(t)
 
-    document.body.removeChild(textarea)
   }
 
   Swal.fire({
@@ -537,9 +533,37 @@ function copyDonate() {
     icon: "success",
     title: "Lightning address copied",
     showConfirmButton: false,
-    timer: 2100
+    timer: 1500
+  })
+
+}
+
+
+
+function donateModal() {
+
+  const addr = "sendmore@walletofsatoshi.com"
+
+  Swal.fire({
+    title: "Support bitBalance ⚡",
+    html: `
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=lightning:${addr}"
+           style="margin:10px auto;display:block">
+
+      <div style="margin-top:10px;font-size:14px;color:#aaa">
+        Lightning Address
+      </div>
+
+      <div style="margin-top:4px;font-family:monospace">
+        ${addr}
+      </div>
+    `,
+    confirmButtonText: "Copy address"
+  }).then(() => {
+    copyText(addr)
   })
 }
+
 
 
 load(false)

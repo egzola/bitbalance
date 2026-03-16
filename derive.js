@@ -61,25 +61,45 @@ function deriveAddresses(xpub, type, count = 20){
 
 function zpubToXpub(zpub){
 
-  const decoded = bs58check.decode(zpub)
+  try {
 
-  const data = Buffer.from(decoded)
+    const decoded = bs58check.decode(zpub)
 
-  data.writeUInt32BE(0x0488b21e,0)
+    const data = Buffer.from(decoded)
 
-  return bs58check.encode(data)
+    data.writeUInt32BE(0x0488b21e,0)
+
+    return bs58check.encode(data)
+
+  } catch(e) {
+
+    console.error("Invalid zpub:", zpub)
+
+    return null
+  }
 }
 
 
 function ypubToXpub(ypub){
 
-  const decoded = bs58check.decode(ypub)
+  try {
 
-  const data = Buffer.from(decoded)
+    const decoded = bs58check.decode(ypub)
 
-  data.writeUInt32BE(0x0488b21e,0)
+    const data = Buffer.from(decoded)
 
-  return bs58check.encode(data)
+    data.writeUInt32BE(0x0488b21e,0)
+
+    return bs58check.encode(data)
+
+  } catch(e) {
+
+    console.error("Invalid ypub:", ypub)
+
+    return null
+  }
 }
+
+
 
 module.exports = {deriveAddresses, zpubToXpub, ypubToXpub}

@@ -508,5 +508,39 @@ const centerText = {
     }
 }
 
+function copyDonate() {
+
+  const text = "sendmore@walletofsatoshi.com"
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+
+    navigator.clipboard.writeText(text)
+
+  } else {
+
+    const textarea = document.createElement("textarea")
+    textarea.value = text
+    textarea.style.position = "fixed"
+    textarea.style.opacity = 0
+
+    document.body.appendChild(textarea)
+    textarea.select()
+
+    document.execCommand("copy")
+
+    document.body.removeChild(textarea)
+  }
+
+  Swal.fire({
+    toast: true,
+    position: "top",
+    icon: "success",
+    title: "Lightning address copied",
+    showConfirmButton: false,
+    timer: 1500
+  })
+}
+
 
 load(false)
+

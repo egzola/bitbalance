@@ -21,6 +21,9 @@ const PORT =
   parseInt(process.env.ELECTRUM_PORT || "50001", 10);
 
 const appPort = process.env.PORT || 3710;
+
+const DATA_FILE = "./data/wallets.json";
+
 const app = express()
 
 app.use(express.json())
@@ -30,7 +33,7 @@ app.use(express.static('web'))
 let wallets = []
 
 try {
-  wallets = JSON.parse(fs.readFileSync('wallets.json', 'utf8'))
+  wallets = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))
 } catch {
   wallets = []
 }
@@ -81,35 +84,22 @@ function addressToScriptHash(address) {
   return Buffer.from(hash.reverse()).toString('hex')
 }
 
-/*
+
+
 async function getAddressBalance(address) {
-
-  const sh = addressToScriptHash(address)
-
-  const history = await electrum.blockchainScripthash_getHistory(sh)
-
-  if (history.length === 0) {
-    return 0
-  }
-
-  const r = await electrum.blockchainScripthash_getBalance(sh)
-
-  return r.confirmed + r.unconfirmed
-}
-*/
-
-async function getAddressBalance(address){
 
   const sh = addressToScriptHash(address)
 
   const utxos = await electrum.blockchainScripthash_listunspent(sh)
 
-  if(!utxos || utxos.length === 0)
+  //console.log("UTXOs for address:", address, utxos)
+
+  if (!utxos || utxos.length === 0)
     return 0
 
   let total = 0
 
-  for(const u of utxos){
+  for (const u of utxos) {
     total += u.value
   }
 
@@ -125,16 +115,20 @@ function validateKey(key) {
 
 }
 
-async function scanBranch(root, change, type) {
 
-  const branch = root.derive(change)
 
-  let index = 0;
-  let gap = 0;
-  let total = 0;
+async function scanBranch(root, change, type, isBranch = false) {
+
+  const branch = isBranch ? root : root.derive(change)
+
+  const types = type === "auto" ? ["p2pkh", "p2wpkh", "p2sh"] : [type];
+
+  let index = 0
+  let gap = 0
+  let total = 0
 
   const concurrency = 5;
-  const gapLimit = 30;
+  const gapLimit = 20;
 
   while (gap < gapLimit) {
 
@@ -144,37 +138,48 @@ async function scanBranch(root, change, type) {
 
       const child = branch.derive(index)
 
-      let payment
+      for (const t of types) {
 
-      if (type === "p2wpkh") {
-        payment = bitcoin.payments.p2wpkh({ pubkey: child.publicKey })
+        let payment
+
+        if (t === "p2wpkh") {
+          payment = bitcoin.payments.p2wpkh({ pubkey: child.publicKey, network: bitcoin.networks.bitcoin })
+        }
+
+        if (t === "p2sh") {
+          payment = bitcoin.payments.p2sh({
+            redeem: bitcoin.payments.p2wpkh({ pubkey: child.publicKey, network: bitcoin.networks.bitcoin })
+          })
+        }
+
+        if (t === "p2pkh") {
+          payment = bitcoin.payments.p2pkh({ pubkey: child.publicKey, network: bitcoin.networks.bitcoin })
+        }
+
+        batch.push(payment.address)
+
       }
-
-      if (type === "p2sh") {
-        payment = bitcoin.payments.p2sh({
-          redeem: bitcoin.payments.p2wpkh({ pubkey: child.publicKey })
-        })
-      }
-
-      if (type === "p2pkh") {
-        payment = bitcoin.payments.p2pkh({ pubkey: child.publicKey })
-      }
-
-      const address = payment.address
-
-      batch.push(address)
 
       index++
     }
 
-    const balances = await Promise.all(
-      batch.map(a => getAddressBalance(a))
-    )
+    const balances = await Promise.all(batch.map(a => getAddressBalance(a)))
 
-    for (const b of balances) {
+    let pos = 0
 
-      if (b > 0) {
-        total += b
+    for (let i = 0; i < concurrency; i++) {
+
+      const group = balances.slice(pos, pos + types.length)
+      pos += types.length
+
+      const found = group.some(b => b > 0)
+
+      //for (const b of group) total += b;
+      const max = Math.max(...group); // hack para evitar duplicar saldos, considerando que o mesmo endereço pode ser gerado por mais de um tipo (p2wpkh, p2sh, p2pkh) e isso pode causar contagem duplicada. Pegando o máximo, garantimos que só o saldo real seja contado, sem duplicatas.
+      total += max
+
+
+      if (found) {
         gap = 0
       } else {
         gap++
@@ -184,7 +189,7 @@ async function scanBranch(root, change, type) {
 
   }
 
-  return total
+  return total / 100000000;
 }
 
 
@@ -210,7 +215,7 @@ function normalizeXpub(key) {
 
   if (key.startsWith("xpub")) {
     return {
-      type: "p2pkh",
+      type: "auto",
       key: key
     }
   }
@@ -219,40 +224,40 @@ function normalizeXpub(key) {
 }
 
 
-async function addressUsed(address) {
-
-  const sh = addressToScriptHash(address)
-
-  const h = await electrum.blockchainScripthash_getHistory(sh)
-
-  return h.length > 0
-}
-
-
 async function getWalletBalance(xpub) {
 
+  const info = normalizeXpub(xpub)
+  const root = bip32.fromBase58(info.key, bitcoin.networks.bitcoin)
+
+  let total = 0
+
   try {
-    const info = normalizeXpub(xpub)
 
-    const root = bip32.fromBase58(info.key, bitcoin.networks.bitcoin)
+    // padrão normal
+    total += await scanBranch(root, 0, info.type)
+    total += await scanBranch(root, 1, info.type)
 
-    const receive = await scanBranch(root, 0, info.type)
-    const change = await scanBranch(root, 1, info.type)
+  } catch { }
 
-    return receive + change
-  } catch (e) {
-    console.error("Error getting wallet balance:", e)
-    return 0
-  }
+  try {
+
+    // fallback para xpub já no branch
+    total += await scanBranch(root, null, info.type, true)
+
+  } catch { }
+
+  return total
 }
 
 
 
-function loadWallets(){
 
-  try{
-    wallets = JSON.parse(fs.readFileSync("wallets.json","utf8"))
-  }catch{
+
+async function loadWallets() {
+
+  try {
+    wallets = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"))
+  } catch {
     wallets = []
   }
 
@@ -260,26 +265,32 @@ function loadWallets(){
 
 app.get("/wallets", async (req, res) => {
 
-  loadWallets()
+  let rescan = req.query.rescan === "true";
 
-  const result = []
-  const cache = {}
+  await loadWallets();
 
-  for(const w of wallets){
+  /*
+    // removi para nao fazer muitas requisições em paralelo, o que pode travar o Electrum e causar timeouts. Agora as requisições são feitas de forma sequencial, o que é mais estável.
+    await Promise.all(wallets.map(async w => {
+      const balance = await getWalletBalance(w.xpub)
+      w.balance = balance
+    }))
+  */
 
-    if(!cache[w.xpub]){
-      cache[w.xpub] = await getWalletBalance(w.xpub)
+  if (rescan) {
+    for (const w of wallets) {
+      w.balance = await getWalletBalance(w.xpub);
     }
 
-    result.push({
-      wallet: w.wallet,
-      xpub: w.xpub,
-      balance: cache[w.xpub] / 1e8
-    })
-
+    // atualiza o arquivo com os novos saldos
+    fs.writeFileSync(DATA_FILE, JSON.stringify(wallets, null, 2));
   }
 
-  res.json(result)
+  //wallets.sort((a, b) => a.order - b.order);
+  // sort por nome da wallet
+  wallets.sort((a, b) => a.wallet.localeCompare(b.wallet));
+
+  res.json(wallets)
 
 })
 
@@ -295,10 +306,17 @@ app.post("/wallet", (req, res) => {
 
   validateKey(xpub);
 
-  wallets.push({ wallet, xpub })
+  if (wallets.some(w => w.xpub === xpub)) {
+    return res.status(400).json({ error: "xpub already exists" })
+  }
+
+  const id = wallets.length > 0 ? Math.max(...wallets.map(w => w.id)) + 1 : 0;
+  const order = wallets.length;
+
+  wallets.push({ id, order, wallet, xpub, balance: 0 });
 
   fs.writeFileSync(
-    "wallets.json",
+    DATA_FILE,
     JSON.stringify(wallets, null, 2)
   )
 
@@ -318,7 +336,7 @@ app.post("/wallet/remove", (req, res) => {
   wallets = wallets.filter(w => w.xpub !== xpub)
 
   fs.writeFileSync(
-    "wallets.json",
+    DATA_FILE,
     JSON.stringify(wallets, null, 2)
   )
 
@@ -349,11 +367,12 @@ app.post("/wallet/update", (req, res) => {
     return res.status(400).json({ error: "xpub already exists" })
   }
 
-  wallets[index].wallet = wallet
-  wallets[index].xpub = xpub
+  wallets[index].wallet = wallet;
+  wallets[index].xpub = xpub;
+
 
   fs.writeFileSync(
-    "wallets.json",
+    DATA_FILE,
     JSON.stringify(wallets, null, 2)
   )
 

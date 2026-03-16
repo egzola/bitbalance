@@ -2,23 +2,34 @@ let chart
 let walletsCache = []
 var totalBTC = 0;
 var btcPriceUSD = 0;
+var lastPriceFetch = 0
+
+
 
 function btcToSats(btc) {
     return Math.round(btc * 100000000)
 }
 
-
 async function loadBTCPrice() {
+
+    const now = Date.now()
+
+    // cache de 5 minutos
+    if (btcPriceUSD && now - lastPriceFetch < 300000) {
+        return
+    }
 
     try {
 
         const r = await fetch(
-            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+            "https://mempool.space/api/v1/prices"
         )
 
         const data = await r.json()
 
-        btcPriceUSD = data.bitcoin.usd
+        btcPriceUSD = data.USD
+
+        lastPriceFetch = now
 
     } catch (e) {
 
@@ -28,19 +39,74 @@ async function loadBTCPrice() {
 
 }
 
-async function load() {
+
+let scanCounter = 0
+let scanInterval
+
+function startScanIndicator() {
+
+    clearInterval(scanInterval);
+
+    const tbody = document.querySelector("#t tbody")
+
+    if (!tbody) return
+
+    tbody.innerHTML = `
+    <tr>
+      <td colspan="3">
+        <div class="scan-container">
+            <div class="scanbar"></div>
+            <div id="scanIndex">Scanning address 0</div>
+        </div>
+      </td>
+    </tr>`
+
+    scanCounter = 0
+
+    scanInterval = setInterval(() => {
+
+        const el = document.getElementById("scanIndex")
+        if (!el) return
+
+        el.innerText = `Scanning address ${scanCounter++}`
+
+    }, 120)
+
+}
+
+
+function stopScanIndicator() {
+    clearInterval(scanInterval)
+}
+
+
+async function load(rescan = true) {
 
     await loadBTCPrice();
 
     clearTable();
+    startScanIndicator();
 
-    const r = await fetch("/wallets")
-    const wallets = await r.json()
+    let wallets = [];
+
+    try {
+        const r = await fetch("/wallets?rescan=" + rescan);
+        wallets = await r.json()
+    } catch (e) {
+        stopScanIndicator()
+        console.error(e)
+        return
+    }
+
 
     walletsCache = wallets
+    stopScanIndicator();
 
     let rows = ""
     let total = 0
+
+    for (const w of wallets) total += w.balance;
+
 
     const labels = []
     const values = []
@@ -48,7 +114,7 @@ async function load() {
     for (const w of wallets) {
 
         const btc = w.balance
-        total += btc
+        let perc = total > 0 ? ((btc / total) * 100).toFixed(2) : "0.00";
 
         labels.push(w.wallet)
         values.push(btc)
@@ -56,10 +122,8 @@ async function load() {
         rows += `
 <tr onclick="editWallet('${w.xpub}')">
 <td>${w.wallet}</td>
-<td class="balance"
-title="${btcToSats(btc).toLocaleString()} sats">
-${btc.toFixed(8)}
-</td>
+<td class="percentage">${perc}%</td>
+<td class="balance" title="${btcToSats(btc).toLocaleString()} sats">${btc.toFixed(8)}</td>
 <td class="chevron">›</td>
 </tr>`
     }
@@ -68,7 +132,7 @@ ${btc.toFixed(8)}
 
     document.querySelector("#t tbody").innerHTML = rows
 
-    document.getElementById("total").innerText = total.toFixed(8)
+    //document.getElementById("total").innerText = total.toFixed(8)
     document.getElementById("totalTop").innerText = total.toFixed(8) + " BTC";
 
     const usd = totalBTC * btcPriceUSD;
@@ -83,8 +147,8 @@ ${btc.toFixed(8)}
 
 
 function clearTable() {
-    document.querySelector("#t tbody").innerHTML = "<tr><td colspan='3' class='loading'>⌛ Loading...</td></tr>";
-    document.getElementById("total").innerText = "-";
+    document.querySelector("#t tbody").innerHTML = "";
+    //document.getElementById("total").innerText = "-";
     document.getElementById("totalTop").innerText = "-";
     document.getElementById("totalUSD").innerText = "";
     if (chart) chart.destroy();
@@ -249,7 +313,7 @@ function renderChart(labels, data) {
         chart.data.datasets[0].data = data
         chart.update()
 
-    }, 30)
+    }, 50)
 
 }
 
@@ -340,13 +404,15 @@ spellcheck="false"></textarea>
         body: JSON.stringify({ wallet, xpub })
     })
 
-    load()
+    load(true);
 }
 
 
 async function editWallet(xpub) {
 
     const wallet = walletsCache.find(w => w.xpub === xpub)
+
+    let oldXpub = wallet.xpub;
 
     const result = await Swal.fire({
 
@@ -376,7 +442,7 @@ async function editWallet(xpub) {
             body: JSON.stringify({ xpub: xpub })
         })
 
-        load()
+        load(true);
         return
     }
 
@@ -393,7 +459,9 @@ async function editWallet(xpub) {
         })
     })
 
-    load()
+    if (newXpub === oldXpub) return load(false);
+
+    load();
 
 }
 
@@ -442,4 +510,4 @@ const centerText = {
 
 
 
-load()
+load(false)

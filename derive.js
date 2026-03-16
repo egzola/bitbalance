@@ -7,9 +7,9 @@ const bip32 = BIP32Factory(ecc)
 const bs58checkModule = require('bs58check')
 const bs58check = bs58checkModule.default || bs58checkModule
 
-function deriveAddresses(zpub, count = 20){
 
-  const xpub = zpubToXpub(zpub)
+
+function deriveAddresses(xpub, type, count = 20){
 
   const root = bip32.fromBase58(xpub, bitcoin.networks.bitcoin)
 
@@ -23,10 +23,31 @@ function deriveAddresses(zpub, count = 20){
 
       const child = branch.derive(i)
 
-      const { address } = bitcoin.payments.p2wpkh({
-        pubkey: child.publicKey,
-        network: bitcoin.networks.bitcoin
-      })
+      let address
+
+      if(type === "p2wpkh"){
+        address = bitcoin.payments.p2wpkh({
+          pubkey: child.publicKey,
+          network: bitcoin.networks.bitcoin
+        }).address
+      }
+
+      if(type === "p2pkh"){
+        address = bitcoin.payments.p2pkh({
+          pubkey: child.publicKey,
+          network: bitcoin.networks.bitcoin
+        }).address
+      }
+
+      if(type === "p2sh"){
+        address = bitcoin.payments.p2sh({
+          redeem: bitcoin.payments.p2wpkh({
+            pubkey: child.publicKey,
+            network: bitcoin.networks.bitcoin
+          }),
+          network: bitcoin.networks.bitcoin
+        }).address
+      }
 
       addresses.push(address)
 
@@ -36,6 +57,7 @@ function deriveAddresses(zpub, count = 20){
 
   return addresses
 }
+
 
 function zpubToXpub(zpub){
 

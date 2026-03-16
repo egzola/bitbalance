@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="/icon.png">
   <meta name="theme-color" content="#0f1115">
 
-  <link rel="stylesheet" href="/style.css?v=3">
+  <link rel="stylesheet" href="/style.css?v=4">
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -32,7 +32,7 @@
 
     <div class="header-buttons">
       <button class="btn btn-primary" onclick="openWalletModal()">Add Wallet</button>
-      <button class="btn btn-primary" onclick="load()">Refresh</button>
+      <button class="btn btn-primary" onclick="load(true)">Refresh</button>
     </div>
 
   </header>
@@ -60,24 +60,22 @@
         <thead>
           <tr>
             <th>Wallet</th>
-            <th class="balance">Balance (BTC)</th>
+            <th class="percentage">%</th>
+            <th class="balance">BTC</th>
             <th class="chevron"></th>
           </tr>
         </thead>
 
         <tbody>
           <tr>
-            <td colspan="3" class="loading">⌛ Loading...</td>
+            <td colspan="3" class="loading">
+              <div class="scanner">
+                <span id="scanText">Scanning wallet...</span>
+                <div class="scanbar"></div>
+              </div>
+            </td>
           </tr>
         </tbody>
-
-        <tfoot>
-          <tr>
-            <td>Total</td>
-            <td class="balance" id="total">---</td>
-            <td></td>
-          </tr>
-        </tfoot>
 
       </table>
 

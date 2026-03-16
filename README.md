@@ -4,11 +4,11 @@
 
 
 <table  style="border:none;">
-  <tr>
-    <td>
+  <tr style="border:none;">
+    <td style="border:none;">
       <h1>bitBalance</h1>
 </td>    
-    <td>
+    <td style="border:none;">
 <img src="./web/logo.png">      
     </td>
   </tr>

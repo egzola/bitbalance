@@ -537,7 +537,7 @@ function copyDonate() {
     icon: "success",
     title: "Lightning address copied",
     showConfirmButton: false,
-    timer: 1500
+    timer: 2100
   })
 }
 

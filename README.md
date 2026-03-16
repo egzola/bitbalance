@@ -1,95 +1,118 @@
+![Bitcoin](https://img.shields.io/badge/Bitcoin-self--hosted-orange)
+![Umbrel](https://img.shields.io/badge/Runs%20on-Umbrel-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+
 # bitBalance
 
-Self-hosted Bitcoin wallet balance tracker for **XPUB, YPUB and ZPUB**.
+A simple and private **Bitcoin wallet balance tracker** for XPUB, YPUB and ZPUB.
 
-bitBalance allows you to monitor the balances of multiple Bitcoin wallets using your **own Electrs server**, keeping your data private and eliminating the need for third-party services.
+bitBalance allows you to monitor multiple Bitcoin wallets using **your own Electrs server**, without relying on third-party APIs.
 
-Designed to run locally on **Umbrel**.
+Runs locally on **Umbrel** and keeps all wallet data private.
+
+---
+
+## Why bitBalance?
+
+Many wallet tracking services require sending your XPUB to external servers.
+
+This exposes:
+
+- all wallet addresses
+- wallet balances
+- transaction history
+
+bitBalance avoids this by connecting **only to your own node**.
+
+Architecture:
+
+XPUB / YPUB / ZPUB  
+↓  
+bitBalance  
+↓  
+Electrs  
+↓  
+Bitcoin Core
+
+Your wallet data never leaves your infrastructure.
 
 ---
 
 ## Features
 
-• Track multiple Bitcoin wallets  
-• Supports **XPUB, YPUB and ZPUB**  
-• Connects directly to your **local Electrs server**  
-• No third-party APIs  
-• Lightweight and simple interface  
-• Fully self-hosted  
-• Runs on **Umbrel**
+- Track multiple Bitcoin wallets
+- Supports **XPUB, YPUB and ZPUB**
+- Connects to your **local Electrs server**
+- No third-party APIs
+- Fully self-hosted
+- Lightweight and simple interface
+- Runs locally on **Umbrel**
 
 ---
 
+## Screenshot
 
-## How it works
+![bitBalance Dashboard](screenshot.png)
 
-bitBalance connects directly to your local **Electrs** server and queries address balances derived from the provided extended public keys.
+---
 
+## Supported Wallet Types
 
-XPUB / YPUB / ZPUB
-↓
-bitBalance
-↓
-Electrs
-↓
-Bitcoin Core
-
-
-This ensures that:
-
-• Your wallet information never leaves your node  
-• No external APIs are used  
-• Full privacy is preserved  
+| Type | Standard | Script |
+|-----|------|------|
+| XPUB | BIP44 | Legacy |
+| YPUB | BIP49 | Nested SegWit |
+| ZPUB | BIP84 | Native SegWit |
 
 ---
 
 ## Requirements
 
-• Umbrel  
-• Electrs installed
+- Umbrel
+- Electrs installed
 
 ---
 
-## Installation (Umbrel)
+## Installation
 
-bitBalance can be installed directly from the **Umbrel App Store**.
+Install **bitBalance** directly from the Umbrel App Store.
 
-After installation the app will automatically connect to your local **Electrs server**.
+After installation the app will automatically connect to your **Electrs server**.
 
 ---
 
 ## Usage
 
 1. Open bitBalance
-2. Add a wallet name
-3. Paste an **XPUB / YPUB / ZPUB**
-4. The balance will be automatically tracked
+2. Click **Add Wallet**
+3. Enter a wallet name
+4. Paste an **XPUB / YPUB / ZPUB**
 
-You can monitor multiple wallets simultaneously.
+The wallet balance will be tracked automatically.
 
 ---
 
 ## Privacy
 
-bitBalance connects **only to your own Electrs server**.
+bitBalance is designed with privacy in mind.
 
-No wallet data is sent to:
-
-• third-party APIs  
-• external services  
-• analytics platforms
-
-Everything runs locally on your node.
+- No third-party APIs
+- No analytics
+- No external wallet queries
+- Everything runs locally on your node
 
 ---
 
-## Supported wallet types
+## Architecture
 
-| Type | Standard |
-|-----|------|
-| XPUB | BIP44 (Legacy) |
-| YPUB | BIP49 (Nested SegWit) |
-| ZPUB | BIP84 (Native SegWit) |
+Browser  
+↓  
+bitBalance (Node.js backend)  
+↓  
+Electrs  
+↓  
+Bitcoin Core  
 
 ---
 
@@ -97,11 +120,11 @@ Everything runs locally on your node.
 
 Eduardo Zola
 
-GitHub:  
+GitHub  
 https://github.com/egzola
 
 ---
 
 ## License
 
-MIT License
+MIT

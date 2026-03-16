@@ -29,6 +29,11 @@ header {
     z-index: 10;
 }
 
+.walletName {
+    font-size: 16px;
+}
+
+
 header h1 {
     margin: 0;
     font-size: 22px;
@@ -144,9 +149,10 @@ tbody tr:hover .chevron {
     opacity: .9;
 }
 
-canvas {
+#chart {
     margin-top: 20px;
-    max-height: 320px;
+    max-height: 400px;
+    height: 400px;
 }
 
 footer {
@@ -221,5 +227,40 @@ footer {
 
     100% {
         left: 100%
+    }
+}
+
+
+
+
+@media (max-width: 600px) {
+    header {
+        padding: 0 5px;
+    }
+
+    .container {
+        padding: 0 10px;
+    }
+
+    .walletName {
+        font-size: 13px;
+    }
+
+    .percentage,
+    .balance {
+        font-size: 13px;
+    }
+
+    .chevron {
+        width: 20px;
+    }
+
+    .card {
+        padding: 10px;
+    }
+
+     #chart {
+        width: 100%;
+        height: auto;
     }
 }

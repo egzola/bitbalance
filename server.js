@@ -223,10 +223,14 @@ function normalizeXpub(key) {
   throw new Error("Unsupported key prefix")
 }
 
-
 async function getWalletBalance(xpub) {
 
   const info = normalizeXpub(xpub)
+
+  if (!info || !info.key) {
+    return 0
+  }
+
   const root = bip32.fromBase58(info.key, bitcoin.networks.bitcoin)
 
   let total = 0
@@ -237,14 +241,14 @@ async function getWalletBalance(xpub) {
     total += await scanBranch(root, 0, info.type)
     total += await scanBranch(root, 1, info.type)
 
-  } catch { }
+  } catch {}
 
   try {
 
     // fallback para xpub já no branch
     total += await scanBranch(root, null, info.type, true)
 
-  } catch { }
+  } catch {}
 
   return total
 }

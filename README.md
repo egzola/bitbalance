@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 
-# bitBalance ![bitBalance logo](./web/logo.png)
+![bitBalance logo](./web/logo.png) # bitBalance 
 
 A simple and private **Bitcoin wallet balance tracker** for XPUB, YPUB and ZPUB.
 

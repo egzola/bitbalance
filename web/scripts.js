@@ -10,7 +10,7 @@ let scanInterval
 
 
 function btcToSats(btc) {
-    return Math.round(btc * 100000000)
+    return Number(BigInt(Math.round(btc * 1e8)))
 }
 
 async function loadBTCPrice() {
@@ -45,7 +45,7 @@ async function loadBTCPrice() {
 async function updatePrices() {
 
     await loadBTCPrice();
-    
+
     const usd = totalBTC * btcPriceUSD;
     document.getElementById("totalUSD").innerText = "$" + usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " USD";
 }
@@ -116,7 +116,7 @@ async function load(rescan = true) {
 
     const labels = []
     const values = []
-    
+
     for (const w of wallets) {
 
         const btc = w.balance
@@ -142,8 +142,8 @@ async function load(rescan = true) {
     document.getElementById("totalTop").innerText = total.toFixed(8) + " BTC";
 
     await updatePrices();
-//    const usd = totalBTC * btcPriceUSD;
-//    document.getElementById("totalUSD").innerText = "$" + usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " USD";
+    //    const usd = totalBTC * btcPriceUSD;
+    //    document.getElementById("totalUSD").innerText = "$" + usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " USD";
 
 
     //renderChart(labels, values)
@@ -521,29 +521,29 @@ const centerText = {
 
 function copyText(text) {
 
-  if (navigator.clipboard && navigator.clipboard.writeText) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
 
-    navigator.clipboard.writeText(text)
+        navigator.clipboard.writeText(text)
 
-  } else {
+    } else {
 
-    const t = document.createElement("textarea")
-    t.value = text
-    document.body.appendChild(t)
-    t.select()
-    document.execCommand("copy")
-    document.body.removeChild(t)
+        const t = document.createElement("textarea")
+        t.value = text
+        document.body.appendChild(t)
+        t.select()
+        document.execCommand("copy")
+        document.body.removeChild(t)
 
-  }
+    }
 
-  Swal.fire({
-    toast: true,
-    position: "top",
-    icon: "success",
-    title: "Lightning address copied",
-    showConfirmButton: false,
-    timer: 1500
-  })
+    Swal.fire({
+        toast: true,
+        position: "top",
+        icon: "success",
+        title: "Lightning address copied",
+        showConfirmButton: false,
+        timer: 1500
+    })
 
 }
 
@@ -551,26 +551,30 @@ function copyText(text) {
 
 function donateModal() {
 
-  const addr = "sendmore@walletofsatoshi.com"
+    const addr = "sendmore@walletofsatoshi.com"
 
-  Swal.fire({
-    title: "Support bitBalance ⚡",
-    html: `
+    Swal.fire({
+        title: "Send a Lightning tip ⚡",
+        html: `
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=lightning:${addr}"
            style="margin:10px auto;display:block">
 
       <div style="margin-top:10px;font-size:13px;color:#aaa">
-        Lightning Address
+        If this tool is useful to you, consider a tip to support development and maintenance. Thank you! 🙏
+        <br><br>
+        Lightning Address ⚡
       </div>
 
       <div style="margin-top:4px;font-size:14px;font-family:monospace">
         ${addr}
       </div>
     `,
-    confirmButtonText: "Copy address"
-  }).then(() => {
-    copyText(addr)
-  })
+        confirmButtonText: "Copy Lightning address"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            copyText(addr)
+        }
+    })
 }
 
 
@@ -579,8 +583,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     await new Promise(resolve => setTimeout(resolve, 500)); // pequena espera para garantir que tudo esteja pronto
 
     load(false);
-   
-   setInterval(updatePrices, 60*1000); // atualiza preço a cada minuto
+
+    document.getElementById("donateBtn").addEventListener("click", donateModal);
+
+    setInterval(updatePrices, 60 * 1000); // atualiza preço a cada minuto
 
 });
 

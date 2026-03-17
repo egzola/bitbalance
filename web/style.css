@@ -1,0 +1,309 @@
+:root {
+    --bg: #0f1115;
+    --card: #1a1d23;
+    --text: #e6e6e6;
+    --border: #2c313a;
+    --accent: #3b82f6;
+}
+
+body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding-top: 90px;
+}
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    background: #0f1115;
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+    user-select: none;
+}
+
+.walletName {
+    font-size: 16px;
+}
+
+
+header h1 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.header-buttons {
+    display: flex;
+    align-items: right;
+    gap: 12px;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 0 20px;
+}
+
+.card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 22px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.total-card {
+    display: flex;
+    justify-content: space-between;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+    padding: 12px 4px;
+}
+
+td {
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+.balance {
+    text-align: right;
+    font-family: ui-monospace, monospace;
+}
+
+.percentage {
+    text-align: right;
+    font-family: ui-monospace, monospace;
+}
+
+.btc-value {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.usd-value {
+    font-size: 14px;
+    opacity: .7;
+    margin-top: 4px;
+}
+
+
+.logo-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    user-select: none;
+}
+
+
+tbody tr {
+    cursor: pointer;
+    transition: background .15s ease;
+}
+
+tbody tr:hover {
+    background: #232833;
+}
+
+.chevron {
+    text-align: right;
+    color: #6b7280;
+    font-size: 18px;
+    width: 30px;
+}
+
+tbody tr:hover .chevron {
+    color: #9ca3af;
+}
+
+.btn {
+    padding: 11px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    opacity: .9;
+}
+
+#chart {
+    margin-top: 20px;
+    max-height: 400px;
+    height: 400px;
+}
+
+footer {
+    font-size: 13px;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 30px;
+    user-select: none;
+}
+
+.loading {
+    text-align: center;
+    color: #6b7280;
+    padding: 20px;
+}
+
+/* SweetAlert popup custom */
+
+.wallet-popup {
+    width: 650px !important;
+}
+
+.swal2-input,
+.swal2-textarea {
+    font-family: monospace;
+    font-size: 14px;
+    width: 97%;
+    margin: auto;
+    height: 50px;
+    margin-top: 15px;
+    resize: none;
+}
+
+.wallet-type {
+    font-size: 13px;
+    opacity: .7;
+    margin-top: 6px;
+}
+
+
+
+.scan-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    padding: 10px;
+}
+
+.scanbar {
+    width: 100%;
+    height: 3px;
+    background: #1f2937;
+    overflow: hidden;
+    position: relative;
+}
+
+.scanbar::after {
+    content: "";
+    position: absolute;
+    height: 100%;
+    width: 40%;
+    background: #3b82f6;
+    animation: scanmove 1.2s linear infinite;
+}
+
+@keyframes scanmove {
+    0% {
+        left: -40%
+    }
+
+    100% {
+        left: 100%
+    }
+}
+
+
+
+
+.donate-btn {
+  background: none;
+  border: none;
+  color: #aaffaa;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.donate-btn:hover {
+  text-decoration: underline;
+}
+
+.donate-btn:active {
+  opacity: 0.7;
+}
+
+.donate-btn:focus-visible {
+  outline: 1px solid #aaffaa;
+  outline-offset: 2px;
+}
+
+
+
+
+@media (max-width: 600px) {
+    header {
+        padding: 0 5px;
+    }
+
+    .container {
+        padding: 0 10px;
+    }
+
+    .walletName {
+        font-size: 13px;
+    }
+
+    .percentage,
+    .balance {
+        font-size: 13px;
+    }
+
+    .chevron {
+        width: 5px;
+    }
+
+    .card {
+        padding: 10px;
+    }
+
+    #chart {
+        width: 100%;
+        height: auto;
+    }
+
+    .btn {
+        padding: 12px 13px;
+    }
+
+    header h1 {
+        font-size: 20px;
+    }
+
+    #t th:first-child {
+        width:130px;
+    }
+
+    #t td:first-child {
+        width:130px;
+    }
+
+
+}

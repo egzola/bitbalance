@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="description" content="Monitor XPUB wallet balances using your own Bitcoin node">
+  <meta name="application-name" content="bitBalance">
+  <meta name="author" content="Eduardo Zola">
+
+  <title>bitBalance</title>
+
+  <link rel="icon" type="image/png" href="/icon.png">
+  <meta name="theme-color" content="#0f1115">
+
+  <link rel="stylesheet" href="/style.css?v=9">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script src="/scripts.js"></script>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo-title">
+      <img src="/logo.png" alt="bitBalance Logo" class="logo" style="width: 50px; height: 50px;" />
+      <h1>bitBalance</h1>
+    </div>
+
+    <div class="header-buttons">
+      <button class="btn btn-primary" onclick="openWalletModal()">Add Wallet</button>
+      <button class="btn btn-primary" onclick="load(true)">Refresh</button>
+    </div>
+
+  </header>
+
+  <div class="container">
+
+    <div class="card total-card">
+
+      <div>Total</div>
+      <div>
+        <div id="totalTop" class="btc-value">
+          0.00000000 BTC
+        </div>
+
+        <div id="totalUSD" class="usd-value"></div>
+
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <table id="t">
+
+        <thead>
+          <tr>
+            <th>Wallet</th>
+            <th class="percentage">%</th>
+            <th class="balance">BTC</th>
+            <th class="chevron"></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td colspan="3" class="loading">
+              <div class="scanner">
+                <span id="scanText">Scanning wallet...</span>
+                <div class="scanbar"></div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+
+      </table>
+
+      <canvas id="chart"></canvas>
+
+    </div>
+
+  </div>
+
+  <footer>
+    by Eduardo Zola &nbsp;&nbsp;&nbsp;
+    <button id="donateBtn" class="donate-btn">
+      ⚡ Tip with Lightning
+    </button>
+  </footer>
+
+</body>
+
+</html>

@@ -252,7 +252,7 @@ footer {
     }
 
     .chevron {
-        width: 20px;
+        width: 5px;
     }
 
     .card {
@@ -271,5 +271,14 @@ footer {
     header h1 {
         font-size: 20px;
     }
+
+    #t th:first-child {
+        width:130px;
+    }
+
+    #t td:first-child {
+        width:130px;
+    }
+
 
 }

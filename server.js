@@ -125,9 +125,16 @@ function validateKey(key) {
 
 async function scanBranch(root, change, type, isBranch = false) {
 
+
+  if (type === "auto") {
+    throw new Error("scanBranch must receive a single type")
+  }
+
   const branch = isBranch ? root : root.derive(change)
 
-  const types = type === "auto" ? ["p2pkh", "p2wpkh", "p2sh"] : [type];
+  //const types = type === "auto" ? ["p2pkh", "p2wpkh", "p2sh"] : [type];
+
+  //const types = [type];
 
   let index = 0
   let gap = 0
@@ -144,55 +151,61 @@ async function scanBranch(root, change, type, isBranch = false) {
 
       const child = branch.derive(index)
 
-      for (const t of types) {
+      let payment;
 
-        let payment
-
-        if (t === "p2wpkh") {
-          payment = bitcoin.payments.p2wpkh({ pubkey: child.publicKey, network: bitcoin.networks.bitcoin })
-        }
-
-        if (t === "p2sh") {
-          payment = bitcoin.payments.p2sh({
-            redeem: bitcoin.payments.p2wpkh({ pubkey: child.publicKey, network: bitcoin.networks.bitcoin })
-          })
-        }
-
-        if (t === "p2pkh") {
-          payment = bitcoin.payments.p2pkh({ pubkey: child.publicKey, network: bitcoin.networks.bitcoin })
-        }
-
-        batch.push(payment.address)
-
+      if (type === "p2wpkh") {
+        payment = bitcoin.payments.p2wpkh({
+          pubkey: child.publicKey,
+          network: bitcoin.networks.bitcoin
+        })
       }
+
+      if (type === "p2sh") {
+        payment = bitcoin.payments.p2sh({
+          redeem: bitcoin.payments.p2wpkh({
+            pubkey: child.publicKey,
+            network: bitcoin.networks.bitcoin
+          })
+        })
+      }
+
+      if (type === "p2pkh") {
+        payment = bitcoin.payments.p2pkh({
+          pubkey: child.publicKey,
+          network: bitcoin.networks.bitcoin
+        })
+      }
+
+      if (!payment) {
+        throw new Error("Invalid address type")
+      }
+      
+      batch.push(payment.address)
 
       index++
     }
 
-    const balances = await Promise.all(batch.map(a => getAddressBalance(a)))
-
-    let pos = 0
+    //    const balances = await Promise.all(batch.map(a => getAddressBalance(a)))
+    const balances = await Promise.all(
+      batch.map(a =>
+        withTimeout(getAddressBalance(a)).catch(() => 0)
+      )
+    )
 
     for (let i = 0; i < concurrency; i++) {
 
-      const group = balances.slice(pos, pos + types.length)
-      pos += types.length
+      const balance = balances[i]
 
-      const found = group.some(b => b > 0)
-
-      //for (const b of group) total += b;
-      const max = Math.max(...group); // hack para evitar duplicar saldos, considerando que o mesmo endereço pode ser gerado por mais de um tipo (p2wpkh, p2sh, p2pkh) e isso pode causar contagem duplicada. Pegando o máximo, garantimos que só o saldo real seja contado, sem duplicatas.
-      total += max
-
-
-      if (found) {
+      if (balance > 0) {
         gap = 0
       } else {
         gap++
       }
 
+      total += balance
     }
 
+    await new Promise(r => setTimeout(r, 10)); // pequena pausa para evitar sobrecarregar o Electrum com muitas requisições em sequência
   }
 
   return total / 100000000;
@@ -229,7 +242,27 @@ function normalizeXpub(key) {
   throw new Error("Unsupported key prefix")
 }
 
+
 async function getWalletBalance(xpub) {
+  const info = normalizeXpub(xpub)
+  const root = bip32.fromBase58(info.key, bitcoin.networks.bitcoin)
+
+  let total = 0
+
+  const types = info.type === "auto"
+    ? ["p2pkh", "p2wpkh", "p2sh"]
+    : [info.type]
+
+  for (const t of types) {
+    total += await scanBranch(root, 0, t)
+    total += await scanBranch(root, 1, t)
+  }
+
+  return total
+}
+
+
+async function __getWalletBalance(xpub) {
 
   const info = normalizeXpub(xpub)
 
@@ -247,14 +280,14 @@ async function getWalletBalance(xpub) {
     total += await scanBranch(root, 0, info.type)
     total += await scanBranch(root, 1, info.type)
 
-  } catch {}
+  } catch { }
 
   try {
 
     // fallback para xpub já no branch
     total += await scanBranch(root, null, info.type, true)
 
-  } catch {}
+  } catch { }
 
   return total
 }
@@ -274,7 +307,7 @@ async function loadWallets() {
 }
 
 app.get("/health", async (req, res) => {
-  res.json({ok:true})
+  res.json({ ok: true })
 })
 
 
@@ -395,6 +428,15 @@ app.post("/wallet/update", (req, res) => {
 
 })
 
+
+function withTimeout(p, ms = 5000) {
+  return Promise.race([
+    p,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("timeout")), ms)
+    )
+  ])
+}
 
 
 async function start() {

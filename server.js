@@ -133,7 +133,7 @@ async function scanBranch(root, change, type, isBranch = false) {
   let gap = 0
   let total = 0
 
-  const concurrency = 5;
+  const concurrency = 10; // número de endereços a serem processados em paralelo. Aumentar esse número pode acelerar a varredura, mas também pode causar mais carga no Electrum e aumentar o risco de timeouts. Ajuste conforme necessário para encontrar um equilíbrio entre velocidade e estabilidade.
   const gapLimit = 20;
 
   while (gap < gapLimit) {

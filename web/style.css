@@ -107,7 +107,7 @@ td {
 .logo-title {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 7px;
     user-select: none;
 }
 
@@ -133,7 +133,7 @@ tbody tr:hover .chevron {
 }
 
 .btn {
-    padding: 8px 14px;
+    padding: 11px 14px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -259,8 +259,17 @@ footer {
         padding: 10px;
     }
 
-     #chart {
+    #chart {
         width: 100%;
         height: auto;
     }
+
+    .btn {
+        padding: 13px 13px;
+    }
+
+    header h1 {
+        font-size: 20px;
+    }
+
 }

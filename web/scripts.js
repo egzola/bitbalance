@@ -4,6 +4,9 @@ var totalBTC = 0;
 var btcPriceUSD = 0;
 var lastPriceFetch = 0
 
+let scanCounter = 0
+let scanInterval
+
 
 
 function btcToSats(btc) {
@@ -39,9 +42,14 @@ async function loadBTCPrice() {
 
 }
 
+async function updatePrices() {
 
-let scanCounter = 0
-let scanInterval
+    await loadBTCPrice();
+    
+    const usd = totalBTC * btcPriceUSD;
+    document.getElementById("totalUSD").innerText = "$" + usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " USD";
+}
+
 
 function startScanIndicator() {
 
@@ -82,8 +90,7 @@ function stopScanIndicator() {
 
 async function load(rescan = true) {
 
-    await loadBTCPrice();
-
+    await new Promise(r => setTimeout(r, 600)) // pequena espera para evitar flash de indicador
     clearTable();
     startScanIndicator();
 
@@ -135,8 +142,10 @@ async function load(rescan = true) {
     //document.getElementById("total").innerText = total.toFixed(8)
     document.getElementById("totalTop").innerText = total.toFixed(8) + " BTC";
 
-    const usd = totalBTC * btcPriceUSD;
-    document.getElementById("totalUSD").innerText = "$" + usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " USD";
+    await updatePrices();
+//    const usd = totalBTC * btcPriceUSD;
+//    document.getElementById("totalUSD").innerText = "$" + usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " USD";
+
 
     //renderChart(labels, values)
     requestAnimationFrame(() => {
@@ -342,7 +351,7 @@ spellcheck="false"></textarea>
 `,
 
         showCancelButton: true,
-        confirmButtonText: "Add Wallet",
+        confirmButtonText: "Save",
 
         willOpen: () => {
 
@@ -568,4 +577,6 @@ function donateModal() {
 
 
 load(false)
+
+setInterval(updatePrices, 60*1000); // atualiza preço a cada minuto
 

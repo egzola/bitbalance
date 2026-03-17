@@ -3,14 +3,13 @@ version: "3.7"
 services:
   app_proxy:
     environment:
-      APP_HOST: app
+      APP_HOST: bitbalance_app_1
       APP_PORT: 3710
 
   app:
-    image: egzola/bitbalance:1.0.11
-    user: "1000:1000"
-    stop_grace_period: 1m
+    image: ghcr.io/egzola/bitbalance:1.0.15
     restart: on-failure
+    stop_grace_period: 1m
 
     environment:
       PORT: 3710

@@ -583,3 +583,4 @@ document.addEventListener('DOMContentLoaded', async function () {
    setInterval(updatePrices, 60*1000); // atualiza preço a cada minuto
 
 });
+

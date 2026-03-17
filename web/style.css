@@ -27,6 +27,7 @@ header {
     background: #0f1115;
     border-bottom: 1px solid var(--border);
     z-index: 10;
+    user-select: none;
 }
 
 .walletName {
@@ -156,8 +157,7 @@ tbody tr:hover .chevron {
 }
 
 footer {
-    opacity: .6;
-    font-size: 12px;
+    font-size: 13px;
     text-align: center;
     margin-top: 10px;
     margin-bottom: 30px;
@@ -228,6 +228,31 @@ footer {
     100% {
         left: 100%
     }
+}
+
+
+
+
+.donate-btn {
+  background: none;
+  border: none;
+  color: #aaffaa;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.donate-btn:hover {
+  text-decoration: underline;
+}
+
+.donate-btn:active {
+  opacity: 0.7;
+}
+
+.donate-btn:focus-visible {
+  outline: 1px solid #aaffaa;
+  outline-offset: 2px;
 }
 
 

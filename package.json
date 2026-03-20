@@ -1,6 +1,6 @@
 {
   "name": "bitbalance",
-  "version": "1.0.0",
+  "version": "1.0.17",
   "description": "Bitcoin balance monitor (XPUB / YPUB / ZPUB)",
   "main": "server.js",
   "type": "commonjs",

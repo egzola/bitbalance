@@ -13,12 +13,14 @@ const { zpubToXpub, ypubToXpub } = require('./derive');
 
 const isDocker = fs.existsSync("/.dockerenv");
 
+const appVersion = require('./package.json').version || "1.0.0";
+
 const HOST = process.env.ELECTRUM_HOST || "127.0.0.1";
 const PORT = parseInt(process.env.ELECTRUM_PORT || "50001", 10);
 
 const appPort = process.env.PORT || 3710;
 
-const DATA_DIR = isDocker  ? "/data"  : __dirname + "/data";
+const DATA_DIR = isDocker ? "/data" : __dirname + "/data";
 const DATA_FILE = DATA_DIR + "/wallets.json";
 
 
@@ -253,18 +255,25 @@ function normalizeXpub(key) {
 
 
 async function getWalletBalance(xpub) {
-  const info = normalizeXpub(xpub)
-  const root = bip32.fromBase58(info.key, bitcoin.networks.bitcoin)
-
   let total = 0
 
-  const types = info.type === "auto"
-    ? ["p2pkh", "p2wpkh", "p2sh"]
-    : [info.type]
+  try {
+    const info = normalizeXpub(xpub)
 
-  for (const t of types) {
-    total += await scanBranch(root, 0, t)
-    total += await scanBranch(root, 1, t)
+    const root = bip32.fromBase58(info.key, bitcoin.networks.bitcoin)
+
+    const types = info.type === "auto"
+      ? ["p2pkh", "p2wpkh", "p2sh"]
+      : [info.type]
+
+    for (const t of types) {
+      total += await scanBranch(root, 0, t)
+      total += await scanBranch(root, 1, t)
+    }
+
+  } catch (e) {
+    console.error("Error scanning wallet:", e)
+    total = 0
   }
 
   return total
@@ -315,9 +324,13 @@ async function loadWallets() {
 
 }
 
+app.get("/appversion", async (req, res) => {
+  res.json({ appversion: appVersion })
+});
+
 app.get("/health", async (req, res) => {
   res.json({ ok: true })
-})
+});
 
 
 app.get("/wallets", async (req, res) => {
@@ -455,6 +468,7 @@ async function start() {
 
   app.listen(appPort, () => {
     console.log(`bitBalance running on port ${appPort}`)
+    console.log(`app Version: ${appVersion}`)
   })
 
 }

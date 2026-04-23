@@ -5,6 +5,8 @@
 # bitBalance
 <img src="./web/logo.png">
 
+Track your Bitcoin wallets privately from your own Umbrel.
+
 A simple and private **Bitcoin wallet balance tracker** for XPUB, YPUB and ZPUB.
 
 bitBalance allows you to monitor multiple Bitcoin wallets using **your own Electrs server**, without relying on third-party APIs.
@@ -146,7 +148,7 @@ This project favors simplicity and control over abstraction.
 
 ## Developer
 
-Eduardo Zola
+egzola
 
 GitHub  
 https://github.com/egzola

@@ -1,13 +1,13 @@
 {
   "name": "bitbalance",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Bitcoin balance monitor (XPUB / YPUB / ZPUB)",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js"
   },
-  "author": "Eduardo Zola",
+  "author": "egzola",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",

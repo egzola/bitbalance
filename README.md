@@ -1,7 +1,7 @@
 ![Bitcoin](https://img.shields.io/badge/Bitcoin-self--hosted-orange)
 ![Umbrel](https://img.shields.io/badge/Runs%20on-Umbrel-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-
+ 
 # bitBalance
 <img src="./web/logo.png">
 

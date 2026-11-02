@@ -430,3 +430,27 @@ footer {
 
 
 }
+
+/* Indicador individual enquanto o saldo da carteira está sendo consultado */
+.balance-loading {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 18px;
+}
+
+.balance-spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(156, 163, 175, 0.25);
+    border-top-color: #f59e0b;
+    border-radius: 50%;
+    animation: balance-spin 0.75s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes balance-spin {
+    to { transform: rotate(360deg); }
+}

@@ -32,6 +32,8 @@ app.use(express.static('web'));
 
 let wallets = [];
 let electrum = null;
+// ScriptHashes inscritos na conexão Electrum atual.
+// O cache é zerado sempre que uma nova conexão é criada.
 
 console.log("DATA_DIR:", DATA_DIR)
 console.log("DATA_FILE:", DATA_FILE)
@@ -63,6 +65,7 @@ async function connectElectrum() {
   try {
 
     electrum = new ElectrumClient(PORT, HOST, 'tcp')
+    subscribedScriptHashes = new Set()
 
     electrum.onClose = () => {
       console.log("Electrum disconnected")
@@ -105,23 +108,23 @@ function addressToScriptHash(address) {
 
 async function getAddressBalance(address) {
 
-  const sh = addressToScriptHash(address)
+  const sh = addressToScriptHash(address);
 
-  const utxos = await electrum.blockchainScripthash_listunspent(sh)
-
-  //console.log("UTXOs for address:", address, utxos)
+  const utxos =
+    await electrum.blockchainScripthash_listunspent(sh);
 
   if (!utxos || utxos.length === 0)
-    return 0
+    return 0;
 
-  let total = 0
+  let total = 0;
 
   for (const u of utxos) {
-    total += u.value
+    total += u.value;
   }
 
-  return total
+  return total;
 }
+
 
 
 function validateKey(key) {
@@ -151,7 +154,7 @@ async function scanBranch(root, change, type, isBranch = false) {
   let gap = 0
   let total = 0
 
-  const concurrency = 10; // número de endereços a serem processados em paralelo. Aumentar esse número pode acelerar a varredura, mas também pode causar mais carga no Electrum e aumentar o risco de timeouts. Ajuste conforme necessário para encontrar um equilíbrio entre velocidade e estabilidade.
+  const concurrency = 100; // Restaurado ao valor original após o teste com 2 consultas.
   const gapLimit = 20;
 
   while (gap < gapLimit) {
@@ -196,12 +199,24 @@ async function scanBranch(root, change, type, isBranch = false) {
       index++
     }
 
-    //    const balances = await Promise.all(batch.map(a => getAddressBalance(a)))
+    const startBatch = Date.now();
+
     const balances = await Promise.all(
       batch.map(a =>
-        withTimeout(getAddressBalance(a)).catch(() => 0)
+        withTimeout(getAddressBalance(a)).catch(err => {
+          console.error("Electrum timeout:", err.message);
+          return 0;
+        })
       )
-    )
+    );
+
+    const elapsed = Date.now() - startBatch;
+
+    console.log(
+      `[SCAN] type=${type} branch=${change} ` +
+      `indexes=${index - concurrency}-${index - 1} ` +
+      `time=${elapsed}ms`
+    );
 
     for (let i = 0; i < concurrency; i++) {
 
@@ -333,6 +348,55 @@ app.get("/health", async (req, res) => {
 });
 
 
+
+// Stream de resultados: envia cada carteira assim que sua varredura termina.
+app.get("/wallets/stream", async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  const send = (event) => {
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+      res.flush?.();
+    }
+  };
+
+  try {
+    await loadWallets();
+    wallets.sort((a, b) => a.wallet.localeCompare(b.wallet));
+
+    send({ type: "start", total: wallets.length, wallets });
+
+    for (let i = 0; i < wallets.length; i++) {
+      if (res.writableEnded) return;
+
+      const w = wallets[i];
+      send({ type: "scanning", index: i, total: wallets.length, wallet: w.wallet });
+
+      try {
+        w.balance = await getWalletBalance(w.xpub);
+      } catch (e) {
+        console.error(`Error scanning ${w.wallet}:`, e);
+        send({ type: "wallet-error", index: i, wallet: w.wallet, error: e.message });
+      }
+
+      // Persiste a cada carteira, não apenas no final da varredura.
+      fs.writeFileSync(DATA_FILE, JSON.stringify(wallets, null, 2));
+
+      send({ type: "wallet", index: i, total: wallets.length, wallet: w });
+    }
+
+    send({ type: "done", total: wallets.length, wallets });
+  } catch (e) {
+    console.error("Wallet stream error:", e);
+    send({ type: "error", error: e.message });
+  } finally {
+    res.end();
+  }
+});
+
 app.get("/wallets", async (req, res) => {
 
   let rescan = req.query.rescan === "true";
@@ -451,7 +515,7 @@ app.post("/wallet/update", (req, res) => {
 })
 
 
-function withTimeout(p, ms = 5000) {
+function withTimeout(p, ms = 15000) {
   return Promise.race([
     p,
     new Promise((_, reject) =>

@@ -94,80 +94,150 @@ function stopScanIndicator() {
 }
 
 
-async function load(rescan = true) {
+function renderWallets(wallets) {
+    walletsCache = wallets || [];
 
-    clearTable();
-    startScanIndicator();
-
-    let wallets = [];
-
-    try {
-        const r = await fetch("/wallets?rescan=" + rescan);
-        wallets = await r.json()
-    } catch (e) {
-        stopScanIndicator()
-        console.error(e)
-        return
-    }
-
-    // check if there is no wallets and show show: no wallets configured yet
-    if(wallets.length === 0) {
-        stopScanIndicator();
-        document.querySelector("#t tbody").innerHTML = `
-        <tr>
-          <td colspan="3">ℹ️ No wallets configured yet</td>
-        </tr>`;
+    const tbody = document.querySelector("#t tbody");
+    if (!walletsCache.length) {
+        tbody.innerHTML = `<tr><td colspan="4">ℹ️ No wallets configured yet</td></tr>`;
+        totalBTC = 0;
+        document.getElementById("totalTop").innerText = "0.00000000 BTC";
+        document.getElementById("totalUSD").innerText = "";
+        if (chart) chart.destroy();
         return;
     }
 
-    walletsCache = wallets
-    stopScanIndicator();
+    // Só soma os saldos que já terminaram de ser consultados.
+    const total = walletsCache.reduce((sum, w) =>
+        sum + (w.pending ? 0 : (Number(w.balance) || 0)), 0);
 
-    let rows = ""
-    let total = 0
+    const labels = [];
+    const values = [];
 
-    for (const w of wallets) total += w.balance;
+    const rows = walletsCache.map(w => {
+        const pending = w.pending === true;
+        const btc = pending ? 0 : (Number(w.balance) || 0);
+        const perc = pending ? "—" :
+            (total > 0 ? ((btc / total) * 100).toFixed(1) : "0.0");
 
+        labels.push(w.wallet);
+        values.push(pending ? 0 : btc);
 
-    const labels = []
-    const values = []
+        const balanceCell = pending
+            ? `<span class="balance-loading" title="Consultando saldo"><span class="balance-spinner"></span></span>`
+            : `<span title="${btcToSats(btc).toLocaleString()} sats">${btc.toFixed(8)}</span>`;
 
-    for (const w of wallets) {
-
-        const btc = w.balance
-        let perc = total > 0 ? ((btc / total) * 100).toFixed(1) : "0.00";
-
-        labels.push(w.wallet)
-        values.push(btc)
-
-        rows += `
-<tr onclick="editWallet('${w.xpub}')">
+        return `
+<tr onclick="editWallet('${String(w.xpub).replace(/'/g, "\\'")}')">
 <td class="walletName">${w.wallet}</td>
-<td class="percentage">${perc}%</td>
-<td class="balance" title="${btcToSats(btc).toLocaleString()} sats">${btc.toFixed(8)}</td>
+<td class="percentage">${perc}</td>
+<td class="balance">${balanceCell}</td>
 <td class="chevron">›</td>
-</tr>`
-    }
+</tr>`;
+    }).join("");
 
+    tbody.innerHTML = rows;
     totalBTC = total;
-
-    document.querySelector("#t tbody").innerHTML = rows
-
-    //document.getElementById("total").innerText = total.toFixed(8)
     document.getElementById("totalTop").innerText = total.toFixed(8) + " BTC";
 
-    await updatePrices();
-    //    const usd = totalBTC * btcPriceUSD;
-    //    document.getElementById("totalUSD").innerText = "$" + usd.toLocaleString(undefined, { maximumFractionDigits: 2 }) + " USD";
-
-
-    //renderChart(labels, values)
-    requestAnimationFrame(() => {
-        renderChart(labels, values)
-    })
-
+    updatePrices();
+    requestAnimationFrame(() => renderChart(labels, values));
 }
 
+async function load(rescan = true) {
+    clearTable();
+    startScanIndicator();
+
+    try {
+        // Mostra imediatamente os últimos saldos salvos enquanto a nova varredura ocorre.
+        const cachedResponse = await fetch("/wallets?rescan=false");
+        const cachedWallets = await cachedResponse.json();
+
+        if (!rescan) {
+            stopScanIndicator();
+            renderWallets(cachedWallets);
+            return;
+        }
+
+        if (!cachedWallets.length) {
+            stopScanIndicator();
+            renderWallets([]);
+            return;
+        }
+
+        // Lista todas as carteiras imediatamente, mas esconde os saldos antigos
+        // e mostra um indicador individual enquanto cada consulta está pendente.
+        const pendingWallets = cachedWallets.map(w => ({
+            ...w,
+            balance: null,
+            pending: true
+        }));
+        renderWallets(pendingWallets);
+
+        const source = new EventSource("/wallets/stream");
+
+        source.onmessage = (message) => {
+            const event = JSON.parse(message.data);
+
+            if (event.type === "start") {
+                if (!event.total) {
+                    source.close();
+                    stopScanIndicator();
+                    renderWallets([]);
+                }
+            }
+
+            if (event.type === "scanning") {
+                const el = document.getElementById("scanIndex");
+                if (el) el.innerText =
+                    `Scanning wallet ${event.index + 1}/${event.total}: ${event.wallet}`;
+            }
+
+            if (event.type === "wallet") {
+                const updated = event.wallet;
+                const index = walletsCache.findIndex(w => w.xpub === updated.xpub);
+
+                if (index >= 0) walletsCache[index] = updated;
+                else walletsCache.push(updated);
+
+                // Atualiza tabela, total e gráfico a cada carteira concluída.
+                renderWallets(walletsCache);
+            }
+
+            if (event.type === "done") {
+                source.close();
+                stopScanIndicator();
+                renderWallets(event.wallets || walletsCache);
+            }
+
+            if (event.type === "error") {
+                console.error("Scan error:", event.error);
+                source.close();
+                stopScanIndicator();
+            }
+        };
+
+        source.onerror = (error) => {
+            console.error("Wallet stream connection error:", {
+                readyState: source.readyState,
+                url: source.url,
+                event: error
+            });
+
+            // CONNECTING (0): navegador tentando reconectar.
+            // CLOSED (2): conexão encerrada definitivamente.
+            if (source.readyState === EventSource.CLOSED) {
+                stopScanIndicator();
+            }
+        };
+
+    } catch (e) {
+        stopScanIndicator();
+        console.error(e);
+        document.querySelector("#t tbody").innerHTML =
+            `<tr><td colspan="4">Error loading wallets</td></tr>`;
+    }
+}
 
 function clearTable() {
     document.querySelector("#t tbody").innerHTML = "";
@@ -565,33 +635,197 @@ function copyText(text) {
 
 
 function donateModal() {
-
-    const addr = "thanksalot@walletofsatoshi.com"
+    const lightningAddr = "thanksalot@walletofsatoshi.com";
+    const bitcoinAddr = "bc1q64rwm7nduv6w5x8tzptt7p8g0m4deduka46rts";
 
     Swal.fire({
-        title: "Send a Lightning tip ⚡",
+        title: "Support the project ⚡",
         html: `
-      <div style="margin-top:10px;font-size:16px;color:#888">
-        If this tool is useful to you, consider a tip to support development and maintenance. Thank you! 🙏
-        <br><br>
-        Lightning Address ⚡
-      </div>
+            <div style="margin-top:10px;font-size:15px;color:#888">
+                If this tool is useful to you, consider a tip to support
+                development and maintenance. Thank you! 🙏
+            </div>
 
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=lightning:${addr}"
-           style="margin:10px auto;display:block">
+            <!-- Tabs -->
+            <div style="
+                display:flex;
+                margin-top:20px;
+                border-bottom:1px solid #ddd;
+            ">
+                <button
+                    id="tabLightning"
+                    style="
+                        flex:1;
+                        padding:10px;
+                        border:none;
+                        background:none;
+                        font-weight:bold;
+                        color:#0fa90f;
+                        border-bottom:2px solid #0fa90f;
+                        cursor:pointer;
+                    "
+                >
+                    ⚡ Lightning
+                </button>
 
+                <button
+                    id="tabOnchain"
+                    style="
+                        flex:1;
+                        padding:10px;
+                        border:none;
+                        background:none;
+                        font-weight:bold;
+                        color:#888;
+                        border-bottom:2px solid transparent;
+                        cursor:pointer;
+                    "
+                >
+                    ₿ On-chain
+                </button>
+            </div>
 
-      <div style="margin-top:4px;font-size:14px;font-family:monospace">
-        ${addr}
-      </div>
-    `,
-        confirmButtonText: "Copy Lightning address"
-    }).then((result) => {
-        if (result.isConfirmed) {
-            copyText(addr)
+            <!-- Lightning content -->
+            <div id="lightningContent" style="margin-top:15px;">
+                <img
+                    src="./donate_qrcode.png"
+                    style="
+                        width:180px;
+                        max-width:80%;
+                        margin:10px auto;
+                        display:block;
+                    "
+                />
+
+                <div style="
+                    font-size:13px;
+                    font-family:monospace;
+                    word-break:break-all;
+                    margin:10px 0;
+                ">
+                    ${lightningAddr}
+                </div>
+
+                <button
+                    id="copyLightning"
+                    class="swal2-confirm swal2-styled"
+                    style="background:#0fa90f"
+                >
+                    Copy Lightning address
+                </button>
+            </div>
+
+            <!-- On-chain content -->
+            <div
+                id="onchainContent"
+                style="
+                    margin-top:15px;
+                    display:none;
+                "
+            >
+                <img
+                    src="./donate_btc_qrcode.png"
+                    style="
+                        width:180px;
+                        max-width:80%;
+                        margin:10px auto;
+                        display:block;
+                    "
+                />
+
+                <div style="
+                    font-size:13px;
+                    font-family:monospace;
+                    word-break:break-all;
+                    margin:10px 0;
+                ">
+                    ${bitcoinAddr}
+                </div>
+
+                <button
+                    id="copyBitcoin"
+                    class="swal2-confirm swal2-styled"
+                    style="background:#f7931a"
+                >
+                    Copy Bitcoin address
+                </button>
+            </div>
+        `,
+
+        showConfirmButton: false,
+        showCloseButton: true,
+
+        didOpen: () => {
+
+            const tabLightning =
+                document.getElementById("tabLightning");
+
+            const tabOnchain =
+                document.getElementById("tabOnchain");
+
+            const lightningContent =
+                document.getElementById("lightningContent");
+
+            const onchainContent =
+                document.getElementById("onchainContent");
+
+            // Lightning tab
+            tabLightning.addEventListener("click", () => {
+
+                lightningContent.style.display = "block";
+                onchainContent.style.display = "none";
+
+                tabLightning.style.color = "#0fa90f";
+                tabLightning.style.borderBottom =
+                    "2px solid #0fa90f";
+
+                tabOnchain.style.color = "#888";
+                tabOnchain.style.borderBottom =
+                    "2px solid transparent";
+            });
+
+            // On-chain tab
+            tabOnchain.addEventListener("click", () => {
+
+                lightningContent.style.display = "none";
+                onchainContent.style.display = "block";
+
+                tabOnchain.style.color = "#f7931a";
+                tabOnchain.style.borderBottom =
+                    "2px solid #f7931a";
+
+                tabLightning.style.color = "#888";
+                tabLightning.style.borderBottom =
+                    "2px solid transparent";
+            });
+
+            // Copy Lightning
+            document
+                .getElementById("copyLightning")
+                .addEventListener("click", () => {
+
+                    copyText(lightningAddr);
+
+                    Swal.showValidationMessage(
+                        "Lightning address copied! ⚡"
+                    );
+                });
+
+            // Copy Bitcoin
+            document
+                .getElementById("copyBitcoin")
+                .addEventListener("click", () => {
+
+                    copyText(bitcoinAddr);
+
+                    Swal.showValidationMessage(
+                        "Bitcoin address copied! ₿"
+                    );
+                });
         }
-    })
+    });
 }
+
 
 
 document.addEventListener('DOMContentLoaded', async function () {

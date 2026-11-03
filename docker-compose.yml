@@ -7,7 +7,7 @@ services:
       APP_PORT: 3710
 
   app:
-    image: ghcr.io/egzola/bitbalance:1.0.18@sha256:9d390c1aa9025a49c37604239700662236b8fc84138ae582fa66710ac4a82bf7
+    image: ghcr.io/egzola/bitbalance:1.0.25@sha256:04af8aa1152ccefb88c715760d0cc3642cd6bab50153d6df96fb002516f03c59
     restart: on-failure
     stop_grace_period: 1m
     environment:
